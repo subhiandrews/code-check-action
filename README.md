@@ -63,4 +63,8 @@ Data you send is yours: nothing is sent to the action's author.
 
 ## Status
 
-Written but not yet run end to end. Unverified: the `install` step (`node installer/cli.js install` on a runner), `claude -p` behaviour with `--add-dir` on a fresh runner, and the flattening of `runs/` in `collect.yml` against what `shadow collect` expects. Run it on a test PR first. License: not chosen yet; add one before publishing.
+The install path and the dry-run of the headless command pass on a clean runner (the `smoke` workflow). A full review has not yet been run end to end. Unverified: `claude -p` behaviour with `--add-dir` on a runner, and the flattening of `runs/` in `collect.yml` against what `shadow collect` expects. Run it on a test PR first.
+
+## License
+
+[Apache-2.0](LICENSE).
