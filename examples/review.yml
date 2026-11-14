@@ -1,0 +1,25 @@
+name: code-check
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# A new push cancels the review of the previous commit.
+concurrency:
+  group: code-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: subhiandrews/code-check-action@v1 # pin a commit SHA in security-sensitive repos
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-token: ${{ secrets.CODE_CHECK_GH_TOKEN }} # PAT of a reviewer account, not the PR author
+          # telemetry: "true"
+          # telemetry-repo: subhiandrews/code-check-telemetry
+          # telemetry-token: ${{ secrets.TELEMETRY_TOKEN }}

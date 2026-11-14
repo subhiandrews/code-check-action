@@ -1,0 +1,41 @@
+name: collect
+# Lives in the PRIVATE telemetry repo. Attaches what humans did with each comment to earlier runs,
+# then exports auto-labelled golden examples.
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.14" }
+      - name: Install code-check
+        env:
+          CODE_CHECK_REF: v0.1.4 # keep in step with the action's code-check-ref
+        run: pip install "git+https://github.com/subhiandrews/codecheck.git@${CODE_CHECK_REF}"
+      - name: Collect and export
+        env:
+          GH_TOKEN: ${{ secrets.COLLECT_GH_TOKEN }} # read access to the reviewed repos
+          CODE_CHECK_SHADOW__STORE: ${{ github.workspace }}/store
+        run: |
+          set -euo pipefail
+          # code-check expects <store>/<run_id>.* ; flatten the runs/ tree into the store
+          mkdir -p "$CODE_CHECK_SHADOW__STORE"
+          find runs -mindepth 3 -maxdepth 3 -type d -exec cp -R {}/. "$CODE_CHECK_SHADOW__STORE"/ \;
+          code-check shadow collect --all
+          code-check shadow export-golden --out golden/auto.jsonl
+          mkdir -p outcomes && cp -R "$CODE_CHECK_SHADOW__STORE"/. outcomes/
+      - name: Commit
+        run: |
+          git config user.name "code-check-action"
+          git config user.email "code-check-action@users.noreply.github.com"
+          git add -A golden outcomes
+          git diff --cached --quiet || git commit -m "collect: outcomes and golden export"
+          git push

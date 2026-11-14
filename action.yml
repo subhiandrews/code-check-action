@@ -1,0 +1,112 @@
+name: code-check review
+description: Review a pull request with the code-check reviewer panel and post one inline review.
+author: subhiandrews
+branding:
+  icon: check-circle
+  color: green
+
+inputs:
+  anthropic-api-key:
+    description: Anthropic API key for the headless claude process. Pass it from a secret.
+    required: true
+  github-token:
+    description: >-
+      Token of the account that posts the review. It must be a personal access token (fine-grained: Pull requests
+      read/write, Contents read, Metadata read) of an account that is not the PR author. The default GITHUB_TOKEN
+      does not work: code-check calls `gh api user`, which an installation token cannot do.
+    required: true
+  code-check-ref:
+    description: Tag or commit of subhiandrews/codecheck to install. Pin a release.
+    default: v0.1.4
+  security:
+    description: Also run the opt-in security reviewer ("true" or "false").
+    default: "false"
+  timeout-seconds:
+    description: Upper bound for one review run.
+    default: "1800"
+  fail-on-error:
+    description: Fail the job when the review fails. Default is a warning, so a flaky review never blocks a PR.
+    default: "false"
+  telemetry:
+    description: >-
+      Record hand-off data (findings per stage, aggregator drops, signals) and push it to telemetry-repo.
+      Off by default. Turns on blind mode, so reviewers do not see existing PR comments.
+    default: "false"
+  telemetry-repo:
+    description: PRIVATE repository (OWNER/NAME) that receives the hand-off folders. Required when telemetry is true.
+    default: ""
+  telemetry-token:
+    description: Token with contents:write on telemetry-repo. Required when telemetry is true.
+    default: ""
+
+outputs:
+  skipped:
+    description: "true when the review was skipped (draft, fork, no key, not a pull_request event)"
+    value: ${{ steps.guard.outputs.skip }}
+  ok:
+    description: "true when the headless review succeeded"
+    value: ${{ steps.review.outputs.ok }}
+
+runs:
+  using: composite
+  steps:
+    - id: guard
+      shell: bash
+      env:
+        EVENT_PATH: ${{ github.event_path }}
+        EVENT_NAME: ${{ github.event_name }}
+        REPO: ${{ github.repository }}
+        HAVE_KEY: ${{ inputs.anthropic-api-key != '' && inputs.github-token != '' }}
+      run: ${{ github.action_path }}/scripts/guard.sh
+
+    - if: steps.guard.outputs.skip != 'true'
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.14"
+
+    - if: steps.guard.outputs.skip != 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+
+    - id: install
+      if: steps.guard.outputs.skip != 'true'
+      shell: bash
+      env:
+        CODE_CHECK_REF: ${{ inputs.code-check-ref }}
+        CODE_CHECK_HOME: ${{ runner.temp }}/code-check
+      run: ${{ github.action_path }}/scripts/install.sh
+
+    - id: review
+      if: steps.guard.outputs.skip != 'true'
+      shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPO: ${{ github.repository }}
+        PR: ${{ steps.guard.outputs.pr }}
+        SECURITY: ${{ inputs.security }}
+        FAIL_ON_ERROR: ${{ inputs.fail-on-error }}
+        TELEMETRY: ${{ inputs.telemetry }}
+        CODE_CHECK_HOME: ${{ runner.temp }}/code-check
+        CODE_CHECK_RUN_PR__TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+        CODE_CHECK_SHADOW__STORE: ${{ runner.temp }}/shadow
+      run: ${{ github.action_path }}/scripts/review.sh
+
+    - id: telemetry
+      if: always() && inputs.telemetry == 'true' && steps.guard.outputs.skip != 'true'
+      shell: bash
+      continue-on-error: true
+      env:
+        TELEMETRY_REPO: ${{ inputs.telemetry-repo }}
+        TELEMETRY_TOKEN: ${{ inputs.telemetry-token }}
+        SHADOW_DIR: ${{ runner.temp }}/shadow
+        REPO: ${{ github.repository }}
+        PR: ${{ steps.guard.outputs.pr }}
+        HEAD_SHA: ${{ steps.guard.outputs.head_sha }}
+        RUN_ID: ${{ github.run_id }}
+        RUN_ATTEMPT: ${{ github.run_attempt }}
+        ACTION_REF: ${{ github.action_ref }}
+        CODE_CHECK_REF: ${{ inputs.code-check-ref }}
+        REVIEW_OK: ${{ steps.review.outputs.ok }}
+      run: ${{ github.action_path }}/scripts/publish-telemetry.sh

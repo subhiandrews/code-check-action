@@ -1,0 +1,36 @@
+name: smoke
+# Exercises the install path and builds (without running) the headless command. No model call, no secrets.
+on:
+  workflow_dispatch:
+  push:
+    paths: ["scripts/**", "action.yml", ".github/workflows/smoke.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.14" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Syntax check
+        run: for f in scripts/*.sh; do bash -n "$f"; done
+      - name: Install code-check
+        env:
+          CODE_CHECK_REF: v0.1.4
+          CODE_CHECK_HOME: ${{ runner.temp }}/code-check
+        run: scripts/install.sh
+      - name: Doctor
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CODE_CHECK_HOME: ${{ runner.temp }}/code-check
+        run: code-check doctor
+      - name: Dry-run the headless command
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CODE_CHECK_HOME: ${{ runner.temp }}/code-check
+        run: code-check run-pr --mode review --pr subhiandrews/codecheck#1 --dry-run
