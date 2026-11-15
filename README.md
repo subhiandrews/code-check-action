@@ -6,14 +6,16 @@ Your code and keys stay on your own runners. There is no hosted service.
 
 ## Setup
 
-1. Add repository secrets:
-   - `ANTHROPIC_API_KEY`: your Anthropic key.
-   - `CODE_CHECK_GH_TOKEN`: a fine-grained personal access token (Pull requests: read/write, Contents: read, Metadata: read) of the account that should post the reviews.
-2. Copy [`examples/review.yml`](examples/review.yml) to `.github/workflows/code-check.yml`.
+1. Add the repository secret `ANTHROPIC_API_KEY`.
+2. Copy [`examples/review.yml`](examples/review.yml) to `.github/workflows/code-check.yml`. It grants `pull-requests: write`, and reviews are posted as `github-actions[bot]`.
 
-### Why a personal access token and not `GITHUB_TOKEN`
+### Posting as an account instead
 
-code-check identifies itself with `gh api user` and refuses to review the PRs of the account it runs as. An installation token (`GITHUB_TOKEN`, a GitHub App token) cannot call `/user`, so those fail. Use a PAT, and use an account that is **not** the PR author: to review your own PRs, create a separate reviewer account and use its token. Supporting `github-actions[bot]` needs a small identity override in code-check itself (not done yet).
+Pass `github-token: ${{ secrets.CODE_CHECK_GH_TOKEN }}`, a fine-grained personal access token (Pull requests: read/write, Contents: read, Metadata: read). code-check then posts as that account and skips PRs it authored, so to review your own PRs use the default bot or a separate reviewer account.
+
+### Identity
+
+code-check refuses to review the PRs of the identity it runs as and normally learns it with `gh api user`. An installation token (`GITHUB_TOKEN`, a GitHub App token) cannot call `/user`, so with the default token the action sets `CODE_CHECK_REVIEW__LOGIN=github-actions[bot]` (code-check 0.1.5 or later). Set `reviewer-login` to override it, for example for a GitHub App token.
 
 ## Behaviour
 
@@ -33,8 +35,9 @@ A review failure is a warning, not a red check, unless you set `fail-on-error: "
 | Input | Default | |
 | --- | --- | --- |
 | `anthropic-api-key` | required | |
-| `github-token` | required | PAT, see above |
-| `code-check-ref` | `v0.1.4` | tag or commit of code-check to install |
+| `github-token` | `github.token` | token that posts the review; a PAT posts as its account |
+| `reviewer-login` | | identity override; empty means `github-actions[bot]` with the default token |
+| `code-check-ref` | `v0.1.5` | tag or commit of code-check to install |
 | `security` | `false` | also run the security reviewer |
 | `timeout-seconds` | `1800` | bound on one review run |
 | `fail-on-error` | `false` | |
