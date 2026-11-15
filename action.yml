@@ -11,13 +11,18 @@ inputs:
     required: true
   github-token:
     description: >-
-      Token of the account that posts the review. It must be a personal access token (fine-grained: Pull requests
-      read/write, Contents read, Metadata read) of an account that is not the PR author. The default GITHUB_TOKEN
-      does not work: code-check calls `gh api user`, which an installation token cannot do.
-    required: true
+      Token that posts the review. The default, the workflow's GITHUB_TOKEN, posts as github-actions[bot] and needs
+      `pull-requests: write` and `contents: read` in the workflow permissions. Pass a personal access token instead
+      (Pull requests read/write, Contents read, Metadata read) to post as that account; it must not be the PR author.
+    default: ${{ github.token }}
+  reviewer-login:
+    description: >-
+      Login code-check acts as, for tokens that cannot call `gh api user`. Empty: github-actions[bot] when
+      github-token is the default GITHUB_TOKEN, otherwise the token's own account.
+    default: ""
   code-check-ref:
     description: Tag or commit of subhiandrews/codecheck to install. Pin a release.
-    default: v0.1.4
+    default: v0.1.5
   security:
     description: Also run the opt-in security reviewer ("true" or "false").
     default: "false"
@@ -83,6 +88,7 @@ runs:
       env:
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
         GH_TOKEN: ${{ inputs.github-token }}
+        CODE_CHECK_REVIEW__LOGIN: ${{ inputs.reviewer-login != '' && inputs.reviewer-login || (inputs.github-token == github.token && 'github-actions[bot]' || '') }}
         REPO: ${{ github.repository }}
         PR: ${{ steps.guard.outputs.pr }}
         SECURITY: ${{ inputs.security }}

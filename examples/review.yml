@@ -10,6 +10,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   review:
@@ -19,7 +20,8 @@ jobs:
       - uses: subhiandrews/code-check-action@v1 # pin a commit SHA in security-sensitive repos
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.CODE_CHECK_GH_TOKEN }} # PAT of a reviewer account, not the PR author
+          # Posts as github-actions[bot] with the default GITHUB_TOKEN. To post as an account, pass its PAT:
+          # github-token: ${{ secrets.CODE_CHECK_GH_TOKEN }}
           # telemetry: "true"
           # telemetry-repo: subhiandrews/code-check-telemetry
           # telemetry-token: ${{ secrets.TELEMETRY_TOKEN }}
