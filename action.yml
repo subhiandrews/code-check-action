@@ -7,8 +7,17 @@ branding:
 
 inputs:
   anthropic-api-key:
-    description: Anthropic API key for the headless claude process. Pass it from a secret.
-    required: true
+    description: >-
+      Anthropic API key (pay-as-you-go credits) for the headless claude process. Pass it from a secret. Give this
+      or claude-code-oauth-token; if both are set, claude uses the key.
+    required: false
+    default: ""
+  claude-code-oauth-token:
+    description: >-
+      Token from `claude setup-token`, which bills a Claude Pro or Max subscription instead of API credits. Pass it
+      from a secret. Subscription rate limits apply, so a busy repository may see failed reviews.
+    required: false
+    default: ""
   github-token:
     description: >-
       Token that posts the review. The default, the workflow's GITHUB_TOKEN, posts as github-actions[bot] and needs
@@ -61,7 +70,7 @@ runs:
         EVENT_PATH: ${{ github.event_path }}
         EVENT_NAME: ${{ github.event_name }}
         REPO: ${{ github.repository }}
-        HAVE_KEY: ${{ inputs.anthropic-api-key != '' && inputs.github-token != '' }}
+        HAVE_KEY: ${{ (inputs.anthropic-api-key != '' || inputs.claude-code-oauth-token != '') && inputs.github-token != '' }}
       run: ${{ github.action_path }}/scripts/guard.sh
 
     - if: steps.guard.outputs.skip != 'true'
@@ -87,6 +96,7 @@ runs:
       shell: bash
       env:
         ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        CLAUDE_CODE_OAUTH_TOKEN: ${{ inputs.claude-code-oauth-token }}
         GH_TOKEN: ${{ inputs.github-token }}
         CODE_CHECK_REVIEW__LOGIN: ${{ inputs.reviewer-login != '' && inputs.reviewer-login || (inputs.github-token == github.token && 'github-actions[bot]' || '') }}
         REPO: ${{ github.repository }}

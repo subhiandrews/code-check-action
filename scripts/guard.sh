@@ -10,7 +10,7 @@ skip() {
 }
 
 [[ "$EVENT_NAME" == "pull_request" ]] || skip "only pull_request events are supported (got $EVENT_NAME)"
-[[ "$HAVE_KEY" == "true" ]] || skip "anthropic-api-key or github-token is empty (fork PRs and Dependabot get no secrets)"
+[[ "$HAVE_KEY" == "true" ]] || skip "no anthropic-api-key or claude-code-oauth-token, or github-token is empty (fork PRs and Dependabot get no secrets)"
 
 pr=$(jq -r '.pull_request.number' "$EVENT_PATH")
 draft=$(jq -r '.pull_request.draft' "$EVENT_PATH")
