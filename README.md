@@ -6,7 +6,7 @@ Your code and keys stay on your own runners. There is no hosted service.
 
 ## Setup
 
-1. Add the repository secret `ANTHROPIC_API_KEY`.
+1. Add one repository secret: `ANTHROPIC_API_KEY` (API credits), or `CLAUDE_CODE_OAUTH_TOKEN` (a Claude Pro/Max subscription; create it locally with `claude setup-token` and pass it as `claude-code-oauth-token`). Subscription limits are shared with your own Claude use, and automated use must stay within Anthropic's terms for your plan.
 2. Copy [`examples/review.yml`](examples/review.yml) to `.github/workflows/code-check.yml`. It grants `pull-requests: write`, and reviews are posted as `github-actions[bot]`.
 
 ### Posting as an account instead
@@ -34,7 +34,8 @@ A review failure is a warning, not a red check, unless you set `fail-on-error: "
 
 | Input | Default | |
 | --- | --- | --- |
-| `anthropic-api-key` | required | |
+| `anthropic-api-key` | | API key; this or `claude-code-oauth-token` is required |
+| `claude-code-oauth-token` | | subscription token from `claude setup-token`; the key wins if both are set |
 | `github-token` | `github.token` | token that posts the review; a PAT posts as its account |
 | `reviewer-login` | | identity override; empty means `github-actions[bot]` with the default token |
 | `code-check-ref` | `v0.1.5` | tag or commit of code-check to install |

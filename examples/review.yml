@@ -20,6 +20,7 @@ jobs:
       - uses: subhiandrews/code-check-action@v1 # pin a commit SHA in security-sensitive repos
         with:
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Or, on a Pro/Max plan without API credits: claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Posts as github-actions[bot] with the default GITHUB_TOKEN. To post as an account, pass its PAT:
           # github-token: ${{ secrets.CODE_CHECK_GH_TOKEN }}
           # telemetry: "true"
